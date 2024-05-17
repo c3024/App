@@ -113,6 +113,8 @@ function OptionRow({
     const {translate} = useLocalize();
     const pressableRef = useRef<View | HTMLDivElement>(null);
     const [isDisabled, setIsDisabled] = useState(isOptionDisabled);
+    const [touchStartedInInput, setTouchStartedInInput] = useState(false)
+    
 
     useEffect(() => {
         setIsDisabled(isOptionDisabled);
@@ -167,6 +169,10 @@ function OptionRow({
                         id={keyForList}
                         ref={pressableRef}
                         onPress={(e) => {
+                            if (touchStartedInInput) {
+                                setTouchStartedInInput(false);
+                                return;
+                            }
                             if (!onSelectRow) {
                                 return;
                             }
@@ -272,6 +278,7 @@ function OptionRow({
                                         ]}
                                         onAmountChange={option.amountInputProps.onAmountChange}
                                         maxLength={option.amountInputProps.maxLength}
+                                        setTouchStartedInInput={setTouchStartedInInput}
                                     />
                                 ) : null}
                                 {!isSelected && option.brickRoadIndicator === CONST.BRICK_ROAD_INDICATOR_STATUS.ERROR && (

@@ -294,6 +294,7 @@ function BaseTextInput(
                         !isMultiline && styles.componentHeightLarge,
                         touchableInputWrapperStyle,
                     ]}
+                    onPressIn={() => inputProps.setTouchStartedInInput(true)}
                 >
                     <View
                         style={[
