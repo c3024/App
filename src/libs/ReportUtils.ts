@@ -4020,8 +4020,8 @@ function getIOUSubmittedMessage(report: OnyxEntry<Report>) {
  * @param paymentType - IOU paymentMethodType. Can be oneOf(Elsewhere, Expensify)
  * @param isSettlingUp - Whether we are settling up an IOU
  */
-function getIOUReportActionMessage(iouReportID: string, type: string, total: number, comment: string, currency: string, paymentType = '', isSettlingUp = false): Message[] {
-    const report = getReportOrDraftReport(iouReportID);
+function getIOUReportActionMessage(iouReport, type: string, total: number, comment: string, currency: string, paymentType = '', isSettlingUp = false): Message[] {
+    const report = iouReport;
 
     if (type === CONST.REPORT.ACTIONS.TYPE.SUBMITTED) {
         return getIOUSubmittedMessage(!isEmptyObject(report) ? report : undefined);
@@ -4101,7 +4101,7 @@ function buildOptimisticIOUReportAction(
     participants: Participant[],
     transactionID: string,
     paymentType?: PaymentMethodType,
-    iouReportID = '',
+    iouReport = undefined,
     isSettlingUp = false,
     isSendMoneyFlow = false,
     receipt: Receipt = {},
@@ -4109,7 +4109,7 @@ function buildOptimisticIOUReportAction(
     created = DateUtils.getDBTime(),
     linkedExpenseReportAction: ReportAction | EmptyObject = {},
 ): OptimisticIOUReportAction {
-    const IOUReportID = iouReportID || generateReportID();
+    const IOUReportID = iouReport.reportID || generateReportID();
 
     const originalMessage: ReportAction<typeof CONST.REPORT.ACTIONS.TYPE.IOU>['originalMessage'] = {
         amount,
@@ -4160,7 +4160,7 @@ function buildOptimisticIOUReportAction(
         avatar: getCurrentUserAvatar(),
         isAttachment: false,
         originalMessage,
-        message: getIOUReportActionMessage(iouReportID, type, amount, comment, currency, paymentType, isSettlingUp),
+        message: getIOUReportActionMessage(iouReport, type, amount, comment, currency, paymentType, isSettlingUp),
         person: [
             {
                 style: 'strong',
@@ -5179,7 +5179,7 @@ function buildOptimisticMoneyRequestEntities(
         participants,
         transactionID,
         paymentType,
-        isPersonalTrackingExpense ? '0' : iouReport.reportID,
+        isPersonalTrackingExpense ? undefined : iouReport,
         isSettlingUp,
         isSendMoneyFlow,
         receipt,
