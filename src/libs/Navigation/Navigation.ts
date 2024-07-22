@@ -15,7 +15,7 @@ import {PROTECTED_SCREENS} from '@src/SCREENS';
 import type {Report} from '@src/types/onyx';
 import originalCloseRHPFlow from './closeRHPFlow';
 import originalDismissModal from './dismissModal';
-import originalDismissModalWithReport from './dismissModalWithReport';
+import originalDismissModalWithReport, {dismissModalWithPromise as originalDismissModalWithPromise} from './dismissModalWithReport';
 import getTopmostBottomTabRoute from './getTopmostBottomTabRoute';
 import getTopmostCentralPaneRoute from './getTopmostCentralPaneRoute';
 import originalGetTopmostReportActionId from './getTopmostReportActionID';
@@ -67,6 +67,15 @@ const dismissModal = (reportID?: string, ref = navigationRef) => {
     const report = ReportConnection.getAllReports()?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
     originalDismissModalWithReport({reportID, ...report}, ref);
 };
+
+const dismissModalWithPromise = (reportID?: string, ref = navigationRef) => {
+    if (!reportID) {
+        originalDismissModal(ref);
+        return;
+    }
+    const report = ReportConnection.getAllReports()?.[`${ONYXKEYS.COLLECTION.REPORT}${reportID}`];
+    return originalDismissModalWithPromise({reportID, ...report}, ref);
+}
 // Re-exporting the closeRHPFlow here to fill in default value for navigationRef. The closeRHPFlow isn't defined in this file to avoid cyclic dependencies.
 const closeRHPFlow = (ref = navigationRef) => originalCloseRHPFlow(ref);
 
@@ -393,6 +402,7 @@ export default {
     setParams,
     dismissModal,
     dismissModalWithReport,
+    dismissModalWithPromise,
     isActiveRoute,
     getActiveRoute,
     getActiveRouteWithoutParams,

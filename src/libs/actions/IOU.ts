@@ -3804,11 +3804,15 @@ function trackExpense(
             API.write(WRITE_COMMANDS.TRACK_EXPENSE, parameters, onyxData);
         }
     }
-    Navigation.dismissModal(activeReportID);
-
-    if (action === CONST.IOU.ACTION.SHARE) {
-        Navigation.navigate(ROUTES.ROOM_INVITE.getRoute(activeReportID ?? '-1', CONST.IOU.SHARE.ROLE.ACCOUNTANT));
-    }
+    Navigation.dismissModalWithPromise(activeReportID)
+        .then(() => {
+            if (action === CONST.IOU.ACTION.SHARE) {
+                Navigation.navigate(ROUTES.ROOM_INVITE.getRoute(activeReportID ?? '-1', CONST.IOU.SHARE.ROLE.ACCOUNTANT));
+            }
+        })
+        .catch(error => {
+            console.error("Failed to dismiss modal and navigate:", error);
+        });
 
     Report.notifyNewAction(activeReportID ?? '', payeeAccountID);
 }

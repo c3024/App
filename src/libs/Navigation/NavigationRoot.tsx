@@ -147,6 +147,7 @@ function NavigationRoot({authenticated, lastVisitedPath, initialUrl, onReady}: N
     }, [isSmallScreenWidth]);
 
     const handleStateChange = (state: NavigationState | undefined) => {
+        console.log("navigation state ", state)
         if (!state) {
             return;
         }

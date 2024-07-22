@@ -26,11 +26,61 @@ import type {RootStackParamList, StackNavigationAction, State} from './types';
  *
  * @param targetReportID - The reportID to navigate to after dismissing the modal
  */
-function dismissModalWithReport(targetReport: OnyxEntry<Report>, navigationRef: NavigationContainerRef<RootStackParamList>) {
-    if (!navigationRef.isReady()) {
-        return;
-    }
+// function dismissModalWithReport(targetReport: OnyxEntry<Report>, navigationRef: NavigationContainerRef<RootStackParamList>) {
+//     if (!navigationRef.isReady()) {
+//         return;
+//     }
 
+//     const state = navigationRef.getState();
+//     const lastRoute = state.routes.at(-1);
+//     switch (lastRoute?.name) {
+//         case NAVIGATORS.FULL_SCREEN_NAVIGATOR:
+//         case NAVIGATORS.LEFT_MODAL_NAVIGATOR:
+//         case NAVIGATORS.RIGHT_MODAL_NAVIGATOR:
+//         case SCREENS.NOT_FOUND:
+//         case SCREENS.ATTACHMENTS:
+//         case SCREENS.TRANSACTION_RECEIPT:
+//         case SCREENS.PROFILE_AVATAR:
+//         case SCREENS.WORKSPACE_AVATAR:
+//         case SCREENS.REPORT_AVATAR:
+//         case SCREENS.CONCIERGE:
+//             // If we are not in the target report, we need to navigate to it after dismissing the modal
+//             if (targetReport?.reportID !== getTopmostReportId(state)) {
+//                 const reportState = getStateFromPath(ROUTES.REPORT_WITH_ID.getRoute(targetReport?.reportID ?? '-1'));
+//                 const policyID = getPolicyIDFromState(state as State<RootStackParamList>);
+//                 const policyMemberAccountIDs = getPolicyEmployeeAccountIDs(policyID);
+//                 const shouldOpenAllWorkspace = isEmptyObject(targetReport) ? true : !doesReportBelongToWorkspace(targetReport, policyMemberAccountIDs, policyID);
+
+//                 if (shouldOpenAllWorkspace) {
+//                     switchPolicyID(navigationRef, {route: ROUTES.HOME});
+//                 } else {
+//                     switchPolicyID(navigationRef, {policyID, route: ROUTES.HOME});
+//                 }
+
+//                 const action: StackNavigationAction = getActionFromState(reportState, linkingConfig.config);
+//                 if (action) {
+//                     action.type = 'REPLACE';
+//                     navigationRef.dispatch(action);
+//                 }
+//                 // If not-found page is in the route stack, we need to close it
+//             } else if (state.routes.some((route) => route.name === SCREENS.NOT_FOUND)) {
+//                 const lastRouteIndex = state.routes.length - 1;
+//                 const centralRouteIndex = findLastIndex(state.routes, (route) => isCentralPaneName(route.name));
+//                 navigationRef.dispatch({...StackActions.pop(lastRouteIndex - centralRouteIndex), target: state.key});
+//             } else {
+//                 navigationRef.dispatch({...StackActions.pop(), target: state.key});
+//             }
+//             break;
+//         default: {
+//             Log.hmmm('[Navigation] dismissModalWithReport failed because there is no modal stack to dismiss');
+//         }
+//     }
+// }
+
+function performDismissModalLogic(targetReport, navigationRef) {
+    if (!navigationRef.isReady()) {
+        return false;
+    }
     const state = navigationRef.getState();
     const lastRoute = state.routes.at(-1);
     switch (lastRoute?.name) {
@@ -44,37 +94,64 @@ function dismissModalWithReport(targetReport: OnyxEntry<Report>, navigationRef: 
         case SCREENS.WORKSPACE_AVATAR:
         case SCREENS.REPORT_AVATAR:
         case SCREENS.CONCIERGE:
-            // If we are not in the target report, we need to navigate to it after dismissing the modal
             if (targetReport?.reportID !== getTopmostReportId(state)) {
                 const reportState = getStateFromPath(ROUTES.REPORT_WITH_ID.getRoute(targetReport?.reportID ?? '-1'));
-                const policyID = getPolicyIDFromState(state as State<RootStackParamList>);
+                const policyID = getPolicyIDFromState(state);
                 const policyMemberAccountIDs = getPolicyEmployeeAccountIDs(policyID);
                 const shouldOpenAllWorkspace = isEmptyObject(targetReport) ? true : !doesReportBelongToWorkspace(targetReport, policyMemberAccountIDs, policyID);
 
                 if (shouldOpenAllWorkspace) {
-                    switchPolicyID(navigationRef, {route: ROUTES.HOME});
+                    switchPolicyID(navigationRef, { route: ROUTES.HOME });
                 } else {
-                    switchPolicyID(navigationRef, {policyID, route: ROUTES.HOME});
+                    switchPolicyID(navigationRef, { policyID, route: ROUTES.HOME });
                 }
 
-                const action: StackNavigationAction = getActionFromState(reportState, linkingConfig.config);
+                const action = getActionFromState(reportState, linkingConfig.config);
                 if (action) {
                     action.type = 'REPLACE';
                     navigationRef.dispatch(action);
+                    return true; 
                 }
-                // If not-found page is in the route stack, we need to close it
             } else if (state.routes.some((route) => route.name === SCREENS.NOT_FOUND)) {
                 const lastRouteIndex = state.routes.length - 1;
                 const centralRouteIndex = findLastIndex(state.routes, (route) => isCentralPaneName(route.name));
-                navigationRef.dispatch({...StackActions.pop(lastRouteIndex - centralRouteIndex), target: state.key});
+                navigationRef.dispatch({ ...StackActions.pop(lastRouteIndex - centralRouteIndex), target: state.key });
             } else {
-                navigationRef.dispatch({...StackActions.pop(), target: state.key});
+                navigationRef.dispatch({ ...StackActions.pop(), target: state.key });
             }
-            break;
-        default: {
+            return true; 
+        default:
             Log.hmmm('[Navigation] dismissModalWithReport failed because there is no modal stack to dismiss');
-        }
+            return false; 
     }
 }
 
+function dismissModalWithReport(targetReport, navigationRef) {
+    performDismissModalLogic(targetReport, navigationRef);
+}
+
+function dismissModalWithPromise(targetReport, navigationRef) {
+    return new Promise((resolve, reject) => {
+        const onNavigationStateChange = () => {
+            resolve();  
+            navigationRef.current?.removeListener('state', onNavigationStateChange);
+        };
+
+        try {
+            const actionDispatched = performDismissModalLogic(targetReport, navigationRef);
+            if (actionDispatched) {
+                navigationRef.current?.addListener('state', onNavigationStateChange);
+            } else {
+                resolve();  
+            }
+        } catch (error) {
+            navigationRef.current?.removeListener('state', onNavigationStateChange);
+            reject(error);  
+        }
+    });
+}
+
+
+
 export default dismissModalWithReport;
+export {dismissModalWithPromise};
