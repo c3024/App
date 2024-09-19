@@ -1982,9 +1982,9 @@ function getOptions(
             }
 
             // Add this login to the exclude list so it won't appear when we process the personal details
-            if (reportOption.login) {
-                optionsToExclude.push({login: reportOption.login});
-            }
+            // if (reportOption.login) {
+            //     optionsToExclude.push({login: reportOption.login});
+            // }
         }
     }
 
@@ -2395,7 +2395,16 @@ function filterOptions(options: Options, searchInputValue: string, config?: Filt
         preferPolicyExpenseChat = false,
     } = config ?? {};
     if (searchInputValue.trim() === '' && maxRecentReportsToShow > 0) {
-        return {...options, recentReports: options.recentReports.slice(0, maxRecentReportsToShow)};
+        // return {...options, recentReports: options.recentReports.slice(0, maxRecentReportsToShow)};
+        const recentReports = options.recentReports.slice(0, maxRecentReportsToShow);
+        const excludedLogins = new Set(recentReports.map(report => report.login));
+        const filteredPersonalDetails = options.personalDetails.filter(personalDetail => !excludedLogins.has(personalDetail.login));
+        return {
+            ...options,
+            recentReports,
+            personalDetails: filteredPersonalDetails,
+        };
+            
     }
 
     const parsedPhoneNumber = PhoneNumber.parsePhoneNumber(LoginUtils.appendCountryCode(Str.removeSMSDomain(searchInputValue)));
@@ -2471,6 +2480,11 @@ function filterOptions(options: Options, searchInputValue: string, config?: Filt
     if (maxRecentReportsToShow > 0 && recentReports.length > maxRecentReportsToShow) {
         recentReports.splice(maxRecentReportsToShow);
     }
+
+    const excludedLogins = new Set(recentReports.map(report => report.login));
+    const filteredPersonalDetails = personalDetails.filter(personalDetail => !excludedLogins.has(personalDetail.login));
+    personalDetails = filteredPersonalDetails;
+
 
     return {
         personalDetails,
