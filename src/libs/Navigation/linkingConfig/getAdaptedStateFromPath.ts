@@ -20,7 +20,7 @@ import FULL_SCREEN_TO_RHP_MAPPING from './FULL_SCREEN_TO_RHP_MAPPING';
 import getMatchingBottomTabRouteForState from './getMatchingBottomTabRouteForState';
 import getMatchingCentralPaneRouteForState from './getMatchingCentralPaneRouteForState';
 import replacePathInNestedState from './replacePathInNestedState';
-
+import qabref from '@src/qabref';
 const RHP_SCREENS_OPENED_FROM_LHN = [
     SCREENS.SETTINGS.SHARE_CODE,
     SCREENS.SETTINGS.PROFILE.STATUS,
@@ -154,6 +154,11 @@ function getMatchingRootRouteForRHPRoute(route: NavigationPartialRoute): Navigat
 
             return createFullScreenNavigator({name: fullScreenName as FullScreenName, params: pick(route.params, paramsFromRoute)});
         }
+    }
+
+    if (qabref.value) {
+        qabref.value = false;
+        return;
     }
 
     // check for valid reportID in the route params

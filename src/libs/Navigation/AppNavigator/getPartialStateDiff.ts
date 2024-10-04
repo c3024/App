@@ -46,6 +46,12 @@ function getPartialStateDiff(state: State<RootStackParamList>, templateState: St
         const stateTopmostCentralPane = getTopmostCentralPaneRoute(state);
         const templateStateTopmostCentralPane = getTopmostCentralPaneRoute(templateState);
 
+        console.log("stateTopmostCentralPane ", stateTopmostCentralPane, " templateStateTopmostCentralPane ", templateStateTopmostCentralPane);
+        console.log("stateTopmostCentralPane?.name ", stateTopmostCentralPane?.name, " templateStateTopmostCentralPane?.name ", templateStateTopmostCentralPane?.name);
+        console.log("stateTopmostCentralPane?.params ", stateTopmostCentralPane?.params, " templateStateTopmostCentralPane?.params ", templateStateTopmostCentralPane?.params);
+        console.log("shallowCompare(stateTopmostCentralPane?.params as Record<string, unknown> | undefined, templateStateTopmostCentralPane?.params as Record<string, unknown> | undefined) ", shallowCompare(stateTopmostCentralPane?.params as Record<string, unknown> | undefined, templateStateTopmostCentralPane?.params as Record<string, unknown> | undefined));
+
+        
         if (
             // If the central pane is only in the template state, it's diff.
             // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
