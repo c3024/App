@@ -12,6 +12,7 @@ import extractPolicyIDFromQuery from '@navigation/extractPolicyIDFromQuery';
 import CONST from '@src/CONST';
 import NAVIGATORS from '@src/NAVIGATORS';
 import ONYXKEYS from '@src/ONYXKEYS';
+import qab from '@src/qab';
 import type {Screen} from '@src/SCREENS';
 import SCREENS from '@src/SCREENS';
 import CENTRAL_PANE_TO_RHP_MAPPING from './CENTRAL_PANE_TO_RHP_MAPPING';
@@ -20,7 +21,7 @@ import FULL_SCREEN_TO_RHP_MAPPING from './FULL_SCREEN_TO_RHP_MAPPING';
 import getMatchingBottomTabRouteForState from './getMatchingBottomTabRouteForState';
 import getMatchingCentralPaneRouteForState from './getMatchingCentralPaneRouteForState';
 import replacePathInNestedState from './replacePathInNestedState';
-import qab from '@src/qab';
+
 const RHP_SCREENS_OPENED_FROM_LHN = [
     SCREENS.SETTINGS.SHARE_CODE,
     SCREENS.SETTINGS.PROFILE.STATUS,

@@ -34,12 +34,12 @@ import * as Task from '@userActions/Task';
 import CONST from '@src/CONST';
 import type {TranslationPaths} from '@src/languages/types';
 import ONYXKEYS from '@src/ONYXKEYS';
+import qab from '@src/qab';
 import ROUTES from '@src/ROUTES';
 import SCREENS from '@src/SCREENS';
 import type * as OnyxTypes from '@src/types/onyx';
 import type {QuickActionName} from '@src/types/onyx/QuickAction';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
-import qab from '@src/qab';
 
 // On small screen we hide the search page from central pane to show the search bottom tab page with bottom tab bar.
 // We need to take this in consideration when checking if the screen is focused.

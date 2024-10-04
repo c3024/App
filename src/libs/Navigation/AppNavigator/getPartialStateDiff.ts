@@ -45,7 +45,7 @@ function getPartialStateDiff(state: State<RootStackParamList>, templateState: St
 
         const stateTopmostCentralPane = getTopmostCentralPaneRoute(state);
         const templateStateTopmostCentralPane = getTopmostCentralPaneRoute(templateState);
-        
+
         if (
             // If the central pane is only in the template state, it's diff.
             // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
