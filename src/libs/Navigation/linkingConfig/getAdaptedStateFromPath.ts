@@ -20,7 +20,7 @@ import FULL_SCREEN_TO_RHP_MAPPING from './FULL_SCREEN_TO_RHP_MAPPING';
 import getMatchingBottomTabRouteForState from './getMatchingBottomTabRouteForState';
 import getMatchingCentralPaneRouteForState from './getMatchingCentralPaneRouteForState';
 import replacePathInNestedState from './replacePathInNestedState';
-import qabref from '@src/qabref';
+import qab from '@src/qab';
 const RHP_SCREENS_OPENED_FROM_LHN = [
     SCREENS.SETTINGS.SHARE_CODE,
     SCREENS.SETTINGS.PROFILE.STATUS,
@@ -156,8 +156,8 @@ function getMatchingRootRouteForRHPRoute(route: NavigationPartialRoute): Navigat
         }
     }
 
-    if (qabref.value) {
-        qabref.value = false;
+    if (qab.value) {
+        qab.value = false;
         return;
     }
 

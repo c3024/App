@@ -155,7 +155,6 @@ function NavigationRoot({authenticated, lastVisitedPath, initialUrl, onReady, sh
     }, [shouldUseNarrowLayout]);
 
     const handleStateChange = (state: NavigationState | undefined) => {
-        console.log("state ", state);
         if (!state) {
             return;
         }

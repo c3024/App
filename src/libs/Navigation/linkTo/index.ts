@@ -134,7 +134,6 @@ export default function linkTo(navigation: NavigationContainerRef<RootStackParam
 
             // If this RHP has mandatory central pane and bottom tab screens defined we need to push them.
             const {adaptedState, metainfo} = getAdaptedStateFromPath(path, linkingConfig.config);
-            console.log("adaptedState ", adaptedState, " metainfo ", metainfo);
             if (adaptedState && (metainfo.isCentralPaneAndBottomTabMandatory || metainfo.isFullScreenNavigatorMandatory)) {
                 const diff = getPartialStateDiff(rootState, adaptedState as State<RootStackParamList>, metainfo);
                 const diffActions = getActionsFromPartialDiff(diff);

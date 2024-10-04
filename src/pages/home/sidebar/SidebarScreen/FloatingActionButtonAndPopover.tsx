@@ -39,7 +39,7 @@ import SCREENS from '@src/SCREENS';
 import type * as OnyxTypes from '@src/types/onyx';
 import type {QuickActionName} from '@src/types/onyx/QuickAction';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
-import qabref from '@src/qabref';
+import qab from '@src/qab';
 
 // On small screen we hide the search page from central pane to show the search bottom tab page with bottom tab bar.
 // We need to take this in consideration when checking if the screen is focused.
@@ -243,7 +243,7 @@ function FloatingActionButtonAndPopover(
 
             onSelected();
         };
-        qabref.value = true;
+        qab.value = true;
         const isValidReport = !(isEmptyObject(quickActionReport) || ReportUtils.isArchivedRoom(quickActionReport, reportNameValuePairs));
         const quickActionReportID = isValidReport ? quickActionReport?.reportID ?? '-1' : ReportUtils.generateReportID();
 
