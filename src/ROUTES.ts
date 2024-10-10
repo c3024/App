@@ -400,7 +400,7 @@ const ROUTES = {
     },
     MONEY_REQUEST_CREATE: {
         route: ':action/:iouType/start/:transactionID/:reportID',
-        getRoute: (action: IOUAction, iouType: IOUType, transactionID: string, reportID: string) => `${action as string}/${iouType as string}/start/${transactionID}/${reportID}` as const,
+        getRoute: (action: IOUAction, iouType: IOUType, transactionID: string, reportID: string, isQuickAction? : boolean) => `${action as string}/${iouType as string}/start/${transactionID}/${reportID}${isQuickAction ? `?isQuickAction=true` : ''}` as const,
     },
     MONEY_REQUEST_STEP_SEND_FROM: {
         route: 'create/:iouType/from/:transactionID/:reportID',
@@ -528,8 +528,8 @@ const ROUTES = {
     },
     MONEY_REQUEST_CREATE_TAB_MANUAL: {
         route: ':action/:iouType/start/:transactionID/:reportID/manual',
-        getRoute: (action: IOUAction, iouType: IOUType, transactionID: string, reportID: string) =>
-            `${action as string}/${iouType as string}/start/${transactionID}/${reportID}/manual` as const,
+        getRoute: (action: IOUAction, iouType: IOUType, transactionID: string, reportID: string, isQuickAction?: boolean) =>
+            `${action as string}/${iouType as string}/start/${transactionID}/${reportID}/manual${isQuickAction ? `?isQuickAction=true` : ''}` as const,
     },
     MONEY_REQUEST_CREATE_TAB_SCAN: {
         route: ':action/:iouType/start/:transactionID/:reportID/scan',

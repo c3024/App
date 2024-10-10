@@ -156,6 +156,9 @@ function getMatchingRootRouteForRHPRoute(route: NavigationPartialRoute): Navigat
         }
     }
 
+    if (route.params.isQuickAction) {
+        return;
+    }
     // check for valid reportID in the route params
     // if the reportID is valid, we should navigate back to screen report in CPN
     const reportID = (route.params as Record<string, string | undefined>)?.reportID;
