@@ -563,18 +563,6 @@ function FloatingActionButtonAndPopover({onHideCreateMenu, onShowCreateMenu, isE
         />
     );
 
-    // if (isEmoji) {
-    //     return (
-    //         <>
-    //             <View style={styles.flexGrow1}>
-    //                 {popoverMenu}
-    //                 {confirmModal}
-    //             </View>
-    //             {floatingActionButton}
-    //         </>
-    //     );
-    // }
-
     return (
         <View style={styles.flexGrow1}>
             {popoverMenu}

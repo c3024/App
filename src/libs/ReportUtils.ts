@@ -4556,12 +4556,12 @@ function getParsedComment(text: string, parsingDetails?: ParsingDetails, isAllow
         text.length <= CONST.MAX_MARKUP_LENGTH
             ? Parser.replace(textWithMention, {shouldEscapeText: parsingDetails?.shouldEscapeText, disabledRules: isGroupPolicyReport ? [] : ['reportMentions']})
             : lodashEscape(text);
+    console.log("result ", result);
+    // if (isAllowCustomEmoji) {
+    //     result = result.replace(/&lt;custom-emoji emoji=&quot;/g, '<custom-emoji emoji="').replace(/&quot; \/&gt;/g, '" />');
+    // }
 
-    if (isAllowCustomEmoji) {
-        result = result.replace(/&lt;custom-emoji emoji=&quot;/g, '<custom-emoji emoji="').replace(/&quot; \/&gt;/g, '" />');
-    }
-
-    result = text;
+    // result = text;
 
     return result;
 }
@@ -6365,7 +6365,7 @@ function buildOptimisticTaskReport(
     description?: string,
     policyID: string = CONST.POLICY.OWNER_EMAIL_FAKE,
     notificationPreference: NotificationPreference = CONST.REPORT.NOTIFICATION_PREFERENCE.HIDDEN,
-    isAllowCustomEmoji?: boolean,
+    shouldEscapeText = true,
 ): OptimisticTaskReport {
     const participants: Participants = {
         [ownerAccountID]: {
@@ -6380,7 +6380,7 @@ function buildOptimisticTaskReport(
     return {
         reportID: generateReportID(),
         reportName: title,
-        description: getParsedComment(description ?? '', undefined, isAllowCustomEmoji),
+        description: getParsedComment(description ?? '', {shouldEscapeText}),
         ownerAccountID,
         participants,
         managerID: assigneeAccountID,

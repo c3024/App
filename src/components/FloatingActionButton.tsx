@@ -122,31 +122,6 @@ function FloatingActionButton({onPress, isActive, accessibilityLabel, role, isEm
         onPress(event);
     };
 
-    // if (isEmoji) {
-    //     return (
-    //         <PressableWithoutFeedback
-    //             ref={(el) => {
-    //                 fabPressable.current = el ?? null;
-    //                 if (buttonRef && 'current' in buttonRef) {
-    //                     buttonRef.current = el ?? null;
-    //                 }
-    //             }}
-    //             style={(styles.floatingActionButtonEmoji, Platform.OS !== 'web' && {height: '5%'})}
-    //             accessibilityLabel={accessibilityLabel}
-    //             onPress={toggleFabAction}
-    //             onLongPress={() => {}}
-    //             role={role}
-    //             shouldUseHapticsOnLongPress={false}
-    //         >
-    //             <ImageSVG
-    //                 src={GlobalCreateIcon}
-    //                 width={variables.iconSizeNormal}
-    //                 height={variables.iconSizeNormal}
-    //             />
-    //         </PressableWithoutFeedback>
-    //     );
-    // }
-
     return (
         <EducationalTooltip
             shouldRender={shouldShowProductTrainingTooltip}
