@@ -4551,7 +4551,7 @@ function getParsedComment(text: string, parsingDetails?: ParsingDetails, isAllow
     }
 
     const textWithMention = completeShortMention(text);
-
+    console.log("text ", text);
     let result =
         text.length <= CONST.MAX_MARKUP_LENGTH
             ? Parser.replace(textWithMention, {shouldEscapeText: parsingDetails?.shouldEscapeText, disabledRules: isGroupPolicyReport ? [] : ['reportMentions']})
@@ -4560,6 +4560,8 @@ function getParsedComment(text: string, parsingDetails?: ParsingDetails, isAllow
     if (isAllowCustomEmoji) {
         result = result.replace(/&lt;custom-emoji emoji=&quot;/g, '<custom-emoji emoji="').replace(/&quot; \/&gt;/g, '" />');
     }
+
+    result = text;
 
     return result;
 }

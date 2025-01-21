@@ -9,7 +9,7 @@ import {PressableWithoutFeedback} from '@components/Pressable';
 import FloatingActionEmoji from '@pages/home/sidebar/SidebarScreen/FloatingActionEmoji';
 import variables from '@styles/variables';
 
-const emojiMap: Record<string, FC<SvgProps>> = {
+export const emojiMap: Record<string, FC<SvgProps>> = {
     'action-menu-icon': GlobalCreateIcon,
 };
 

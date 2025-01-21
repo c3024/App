@@ -1661,7 +1661,7 @@ const styles = (theme: ThemeColors) =>
         floatingActionButtonEmoji: {
             alignItems: 'center',
             justifyContent: 'center',
-            verticalAlign: 'bottom',
+            verticalAlign: 'center',
         },
 
         sidebarFooterUsername: {

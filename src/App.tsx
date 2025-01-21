@@ -41,6 +41,7 @@ import {ReportAttachmentsProvider} from './pages/home/report/ReportAttachmentsCo
 import type {Route} from './ROUTES';
 import './setup/backgroundTask';
 import {SplashScreenStateContextProvider} from './SplashScreenStateContext';
+import FABPopoverProvider from '@components/FABPopoverProvider';
 
 type AppProps = {
     /** URL passed to our top-level React Native component by HybridApp. Will always be undefined in "pure" NewDot builds. */
@@ -98,6 +99,7 @@ function App({url}: AppProps) {
                                 KeyboardProvider,
                                 SearchRouterContextProvider,
                                 ProductTrainingContextProvider,
+                                FABPopoverProvider,
                             ]}
                         >
                             <CustomStatusBarAndBackground />

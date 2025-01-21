@@ -1,7 +1,7 @@
 import {useIsFocused as useIsFocusedOriginal, useNavigationState} from '@react-navigation/native';
 import type {ImageContentFit} from 'expo-image';
 import type {ForwardedRef} from 'react';
-import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState} from 'react';
+import React, {forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, useContext} from 'react';
 import {View} from 'react-native';
 import type {OnyxCollection, OnyxEntry} from 'react-native-onyx';
 import {useOnyx} from 'react-native-onyx';
@@ -50,6 +50,7 @@ import type * as OnyxTypes from '@src/types/onyx';
 import type {QuickActionName} from '@src/types/onyx/QuickAction';
 import {isEmptyObject} from '@src/types/utils/EmptyObject';
 import mapOnyxCollectionItems from '@src/utils/mapOnyxCollectionItems';
+import { FABPopoverContext } from '@components/FABPopoverProvider';
 
 // On small screen we hide the search page from central pane to show the search bottom tab page with bottom tab bar.
 // We need to take this in consideration when checking if the screen is focused.
@@ -193,7 +194,8 @@ function FloatingActionButtonAndPopover({onHideCreateMenu, onShowCreateMenu, isE
     const [quickActionPolicy] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY}${quickActionReport?.policyID}`);
     const [allPolicies] = useOnyx(ONYXKEYS.COLLECTION.POLICY, {selector: (c) => mapOnyxCollectionItems(c, policySelector)});
 
-    const [isCreateMenuActive, setIsCreateMenuActive] = useState(false);
+    // const [isCreateMenuActive, setIsCreateMenuActive] = useState(false);
+    const {isCreateMenuActive, setIsCreateMenuActive} = useContext(FABPopoverContext);
     const [modalVisible, setModalVisible] = useState(false);
     const fabRef = useRef<HTMLDivElement>(null);
     const {windowHeight} = useWindowDimensions();
