@@ -41,7 +41,8 @@ function EmojiWithTooltip({emojiCode, style = {}}: EmojiWithTooltipProps) {
         }
       `}</style>
         <Text style={{ fontFamily: 'Font', fontSize: 32 }}>{'\uE001'}</Text> */}
-            <Text style={[style, styles.cursorDefault, {fontFamily: "Font"}]}>{emojiCode}</Text>
+            {/* <Text style={[style, styles.cursorDefault, {fontFamily: "Font"}]}>{emojiCode}</Text> */}
+            <Text style={[style, styles.cursorDefault]}>{emojiCode}</Text>
         </Tooltip>
     );
 }

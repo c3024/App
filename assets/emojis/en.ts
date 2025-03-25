@@ -2,6 +2,9 @@ import type {EmojisList} from './types';
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const enEmojis: EmojisList = {
+    '\uE001' :{
+        keywords: ['fab', 'floating', 'grinning', 'face'],
+    },
     '😀': {
         keywords: ['smile', 'happy', 'face', 'grin'],
     },

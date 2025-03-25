@@ -2,6 +2,10 @@ import type {EmojisList} from './types';
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const esEmojis: EmojisList = {
+    '\uE001' :{
+        name: 'crear-global',
+        keywords: ['fab', 'floating', 'grinning', 'face'],
+    },
     '😀': {
         name: 'sonriendo',
         keywords: ['cara', 'divertido', 'feliz', 'sonrisa', 'cara sonriendo'],
