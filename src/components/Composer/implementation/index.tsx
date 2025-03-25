@@ -340,6 +340,7 @@ function Composer(
             StyleUtils.getComposerMaxHeightStyle(maxLines, isComposerFullSize),
             isComposerFullSize ? {height: '100%', maxHeight: 'none'} : undefined,
             textContainsOnlyEmojis ? styles.onlyEmojisTextLineHeight : {},
+            {fontFamily: 'Font ExpensifyMono-Regular'},
         ],
 
         [style, styles.rtlTextRenderForSafari, styles.onlyEmojisTextLineHeight, scrollStyleMemo, StyleUtils, maxLines, isComposerFullSize, textContainsOnlyEmojis],

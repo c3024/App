@@ -29,10 +29,19 @@ function EmojiWithTooltip({emojiCode, style = {}}: EmojiWithTooltipProps) {
         ),
         [emojiCode, emojiName, styles.alignItemsCenter, styles.ph2, styles.flexRow, styles.emojiTooltipWrapper, styles.fontColorReactionLabel, styles.onlyEmojisText, styles.textMicro],
     );
-
+    console.log("emojiCode", emojiCode);
     return (
         <Tooltip renderTooltipContent={emojiTooltipContent}>
-            <Text style={[style, styles.cursorDefault]}>{emojiCode}</Text>
+            {/* <style>{`
+        @font-face {
+          font-family: 'Font';
+          src: url('/assets/fonts/web/Font.ttf') format('ttf');
+          font-weight: normal;
+          font-style: normal;
+        }
+      `}</style>
+        <Text style={{ fontFamily: 'Font', fontSize: 32 }}>{'\uE001'}</Text> */}
+            <Text style={[style, styles.cursorDefault, {fontFamily: "Font"}]}>{emojiCode}</Text>
         </Tooltip>
     );
 }
