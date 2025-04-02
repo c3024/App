@@ -12,6 +12,7 @@ import OfflineWithFeedback from '@components/OfflineWithFeedback';
 import {useSession} from '@components/OnyxProvider';
 import PressableWithSecondaryInteraction from '@components/PressableWithSecondaryInteraction';
 import {useProductTrainingContext} from '@components/ProductTrainingContext';
+import RenderHTML from '@components/RenderHTML';
 import SubscriptAvatar from '@components/SubscriptAvatar';
 import Text from '@components/Text';
 import Tooltip from '@components/Tooltip';
@@ -24,6 +25,7 @@ import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import DateUtils from '@libs/DateUtils';
 import DomUtils from '@libs/DomUtils';
+import {ConsoleModalStackNavigator} from '@libs/Navigation/AppNavigator/ModalStackNavigators';
 import {shouldOptionShowTooltip, shouldUseBoldText} from '@libs/OptionsListUtils';
 import Parser from '@libs/Parser';
 import Performance from '@libs/Performance';
@@ -39,6 +41,7 @@ import {
     isThread,
     requiresAttentionFromCurrentUser,
 } from '@libs/ReportUtils';
+import TextCommentFragment from '@pages/home/report/comment/TextCommentFragment';
 import {showContextMenu} from '@pages/home/report/ContextMenu/ReportActionContextMenu';
 import FreeTrial from '@pages/settings/Subscription/FreeTrial';
 import variables from '@styles/variables';
@@ -182,7 +185,7 @@ function OptionRowLHN({reportID, isFocused = false, onSelectRow = () => {}, opti
         hideProductTrainingTooltip();
         onSelectRow(optionItem, popoverAnchor);
     };
-
+    
     return (
         <OfflineWithFeedback
             pendingAction={optionItem.pendingAction}
@@ -302,13 +305,26 @@ function OptionRowLHN({reportID, isFocused = false, onSelectRow = () => {}, opti
                                                 )}
                                             </View>
                                             {optionItem.alternateText ? (
-                                                <Text
-                                                    style={alternateTextStyle}
-                                                    numberOfLines={1}
-                                                    accessibilityLabel={translate('accessibilityHints.lastChatMessagePreview')}
-                                                >
-                                                    {Parser.htmlToText(optionItem.alternateText)}
-                                                </Text>
+                                                optionItem.alternateTextHTML ? (
+                                                    <Text
+                                                        style={alternateTextStyle}
+                                                        numberOfLines={1}
+                                                    >
+                                                        <TextCommentFragment
+                                                            fragment={{html: optionItem.alternateTextHTML}}
+                                                            style={alternateTextStyle}
+                                                            numberOfLines={1}
+                                                        />
+                                                    </Text>
+                                                ) : (
+                                                    <Text
+                                                        style={alternateTextStyle}
+                                                        numberOfLines={1}
+                                                        accessibilityLabel={translate('accessibilityHints.lastChatMessagePreview')}
+                                                    >
+                                                        {Parser.htmlToText(optionItem.alternateText)}
+                                                    </Text>
+                                                )
                                             ) : null}
                                         </View>
                                         {optionItem?.descriptiveText ? (

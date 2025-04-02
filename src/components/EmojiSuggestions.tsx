@@ -8,6 +8,7 @@ import * as EmojiUtils from '@libs/EmojiUtils';
 import getStyledTextArray from '@libs/GetStyledTextArray';
 import AutoCompleteSuggestions from './AutoCompleteSuggestions';
 import type {MeasureParentContainerAndCursorCallback} from './AutoCompleteSuggestions/types';
+import EmojiRenderer from './HTMLEngineProvider/HTMLRenderers/EmojiRenderer';
 import Text from './Text';
 
 type EmojiSuggestionsProps = {
@@ -62,10 +63,24 @@ function EmojiSuggestions({
     const renderSuggestionMenuItem = useCallback(
         (item: Emoji): ReactElement => {
             const styledTextArray = getStyledTextArray(item.name, prefix);
+            let child = <Text style={styles.emojiSuggestionsEmoji}>{EmojiUtils.getEmojiCodeWithSkinColor(item, preferredSkinToneIndex)}</Text>;
+
+            if (item.type === 'custom') {
+                child = (
+                    <>
+                   <Text style={styles.emojiSuggestionsEmoji}>
+                        <EmojiRenderer
+                            tnode={{data: item.code, attributes: []}}
+                            style={styles.emojiSuggestionsEmoji}
+                        />
+                        </Text>
+                        </>
+                );
+            }
 
             return (
                 <View style={styles.autoCompleteSuggestionContainer}>
-                    <Text style={styles.emojiSuggestionsEmoji}>{EmojiUtils.getEmojiCodeWithSkinColor(item, preferredSkinToneIndex)}</Text>
+                    {child}
                     <Text
                         numberOfLines={2}
                         style={styles.emojiSuggestionsText}

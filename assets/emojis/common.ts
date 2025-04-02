@@ -7862,6 +7862,11 @@ const emojis: PickerEmojis = [
         name: 'wales',
         code: '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
     },
+    {
+        name: 'global_create',
+        code: ':global_create:',
+        type: 'custom',
+    },
 ];
 
 const categoryFrequentlyUsed: HeaderEmoji = {

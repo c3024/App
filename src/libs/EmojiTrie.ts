@@ -36,13 +36,13 @@ function addKeywordsToTrie(trie: Trie<EmojiMetaData>, keywords: string[], item: 
         const normalizedKeyword = StringUtils.normalizeAccents(keyword);
 
         if (!keywordNode) {
-            const metadata = {suggestions: [{code: item.code, types: item.types, name}]};
+            const metadata = {suggestions: [{code: item.code, types: item.types, name, type: item?.type}]};
             if (normalizedKeyword !== keyword) {
                 trie.add(normalizedKeyword, metadata);
             }
             trie.add(keyword, metadata);
         } else {
-            const suggestion = {code: item.code, types: item.types, name};
+            const suggestion = {code: item.code, types: item.types, name, type: item?.type};
             const suggestions = shouldPrependKeyword ? [suggestion, ...(keywordNode.metaData.suggestions ?? [])] : [...(keywordNode.metaData.suggestions ?? []), suggestion];
             const newMetadata = {
                 ...keywordNode.metaData,
@@ -82,13 +82,13 @@ function createTrie(lang: SupportedLanguage = CONST.LOCALES.DEFAULT): Trie<Emoji
 
             const node = trie.search(localeName);
             if (!node) {
-                const metadata = {code: item.code, types: item.types, name: localeName, suggestions: []};
+                const metadata = {code: item.code, types: item.types, name: localeName, type: item?.type, suggestions: []};
                 if (normalizedName !== localeName) {
                     trie.add(normalizedName, metadata);
                 }
                 trie.add(localeName, metadata);
             } else {
-                const newMetadata = {code: item.code, types: item.types, name: localeName, suggestions: node.metaData.suggestions};
+                const newMetadata = {code: item.code, types: item.types, name: localeName, type: item?.type, suggestions: node.metaData.suggestions};
                 if (normalizedName !== localeName) {
                     trie.update(normalizedName, newMetadata);
                 }

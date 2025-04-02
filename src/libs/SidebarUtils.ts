@@ -38,6 +38,7 @@ import {
     getRemovedConnectionMessage,
     getRenamedAction,
     getReportAction,
+    getReportActionHtml,
     getReportActionMessageText,
     getSortedReportActions,
     getUpdateRoomDescriptionMessage,
@@ -681,6 +682,10 @@ function getOptionData({
         result.status = status;
     }
     result.type = report.type;
+
+    if (/:([a-zA-Z0-9_+-]+):/g.test(result.alternateText ?? '')) {
+        result.alternateTextHTML = getReportActionHtml(lastAction);
+    }
 
     return result;
 }

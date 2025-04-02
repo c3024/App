@@ -172,6 +172,9 @@ function isFirstLetterEmoji(message: string): boolean {
  */
 function containsOnlyEmojis(message: string): boolean {
     const trimmedMessage = Str.replaceAll(message.replace(/ /g, ''), '\n', '');
+    if (/^:([a-zA-Z0-9_+-]+):$/.test(message ?? '')) {
+        return true;
+    }
     const match = trimmedMessage.match(CONST.REGEX.ALL_EMOJIS);
 
     if (!match) {
@@ -436,7 +439,7 @@ function suggestEmojis(text: string, lang: Locale, limit: number = CONST.AUTO_CO
             if (matching.length === limit) {
                 return lodashSortBy(matching, (emoji) => sortByName(emoji, emojiData));
             }
-            matching.push({code: node.metaData.code, name: node.name, types: node.metaData.types});
+            matching.push({code: node.metaData.code, name: node.name, types: node.metaData.types, type: node.metaData.type});
         }
         const suggestions = node.metaData.suggestions;
         if (!suggestions) {
