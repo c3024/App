@@ -88,6 +88,22 @@ const keyExtractor = (item: SearchListItem, index: number) => {
 
 const onScrollToIndexFailed = () => {};
 
+function isTransactionGroupListItemArray(
+  data: SearchListItem[],
+): data is TransactionGroupListItemType[] {
+    if (data.length <= 0) {
+        return false;
+    }
+    const firstElement = data.at(0);
+    return (
+        typeof firstElement === "object" &&
+        "transactions" in firstElement
+  );
+}
+
+
+
+
 function SearchList(
     {
         data,
@@ -114,9 +130,16 @@ function SearchList(
 ) {
     const styles = useThemeStyles();
     const {hash, groupBy} = queryJSON;
-    const flattenedTransactions = groupBy ? (data as TransactionGroupListItemType[]).flatMap((item) => item.transactions) : data;
-    const flattenedTransactionWithoutPendingDelete = flattenedTransactions.filter((t) => t?.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE);
-    const selectedItemsLength = flattenedTransactions.reduce((acc, item) => {
+    let flattenedItems: SearchListItem[] = [];
+    if (groupBy) {
+        if (!isTransactionGroupListItemArray(data)) {
+            flattenedItems = data;
+        } else {
+            flattenedItems = data.flatMap((item) => item.transactions);
+        }
+    }
+    const flattenedItemsWithoutPendingDelete = flattenedItems.filter((t) => t?.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE);
+    const selectedItemsLength = flattenedItems.reduce((acc, item) => {
         return item?.isSelected ? acc + 1 : acc;
     }, 0);
     const {translate} = useLocalize();
@@ -201,7 +224,7 @@ function SearchList(
 
     const [focusedIndex, setFocusedIndex] = useArrowKeyFocusManager({
         initialFocusedIndex: -1,
-        maxIndex: flattenedTransactions.length - 1,
+        maxIndex: flattenedItems.length - 1,
         isActive: isFocused,
         onFocusedIndexChange: (index: number) => {
             scrollToIndex(index);
@@ -330,7 +353,7 @@ function SearchList(
 
     const tableHeaderVisible = canSelectMultiple || !!SearchTableHeader;
     const selectAllButtonVisible = canSelectMultiple && !SearchTableHeader;
-    const isSelectAllChecked = selectedItemsLength > 0 && selectedItemsLength === flattenedTransactionWithoutPendingDelete.length;
+    const isSelectAllChecked = selectedItemsLength > 0 && selectedItemsLength === flattenedItemsWithoutPendingDelete.length;
 
     return (
         <View style={[styles.flex1, !isKeyboardShown && safeAreaPaddingBottomStyle, containerStyle]}>
@@ -340,11 +363,11 @@ function SearchList(
                         <Checkbox
                             accessibilityLabel={translate('workspace.people.selectAll')}
                             isChecked={isSelectAllChecked}
-                            isIndeterminate={selectedItemsLength > 0 && selectedItemsLength !== flattenedTransactionWithoutPendingDelete.length}
+                            isIndeterminate={selectedItemsLength > 0 && selectedItemsLength !== flattenedItemsWithoutPendingDelete.length}
                             onPress={() => {
                                 onAllCheckboxPress();
                             }}
-                            disabled={flattenedTransactions.length === 0}
+                            disabled={flattenedItems.length === 0}
                         />
                     )}
 
