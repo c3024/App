@@ -835,7 +835,7 @@
         "ISO4217": "951"
     },
     "XOF": {
-        "symbol": "CFA",
+        "symbol": "F CFA",
         "name": "CFA Franc (BCEAO)",
         "decimals": 0,
         "ISO4217": "952"
