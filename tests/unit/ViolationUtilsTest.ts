@@ -98,6 +98,12 @@ const tagOutOfPolicyViolation = {
     showInReview: true,
 };
 
+const taxOutOfPolicyViolation: TransactionViolation = {
+    name: CONST.VIOLATIONS.TAX_OUT_OF_POLICY,
+    type: CONST.VIOLATION_TYPES.VIOLATION,
+    showInReview: true,
+};
+
 const smartScanFailedViolation = {
     name: CONST.VIOLATIONS.SMARTSCAN_FAILED,
     type: CONST.VIOLATION_TYPES.WARNING,
@@ -139,6 +145,27 @@ describe('getViolationsOnyxData', () => {
             key: `${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${transaction.transactionID}`,
             value: transactionViolations,
         });
+    });
+
+    it('should not strip taxOutOfPolicy when transaction.taxCode is not a key on policy.taxRates.taxes', () => {
+        // Given tax tracking is on and the expense still references a deleted tax code (same % may exist on another code)
+        policy.tax = {trackingEnabled: true};
+        policy.taxRates = {
+            taxes: {
+                tax_code_new: {
+                    name: 'hj',
+                    value: '5',
+                },
+            },
+        };
+        transaction.taxCode = 'tax_code_deleted';
+        transactionViolations = [taxOutOfPolicyViolation];
+
+        // When
+        const result = ViolationsUtils.getViolationsOnyxData(transaction, transactionViolations, policy, policyTags, policyCategories, false, false);
+
+        // Then server-provided taxOutOfPolicy must remain (do not clear based on another rate with the same percentage)
+        expect((result.value as TransactionViolation[]).some((v) => v.name === CONST.VIOLATIONS.TAX_OUT_OF_POLICY)).toBe(true);
     });
 
     it('should handle multiple violations', () => {
