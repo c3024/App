@@ -4,7 +4,7 @@ import type {Entries, ValueOf} from 'type-fest';
 import type {LocalizedTranslate} from '@components/LocaleContextProvider';
 import CONST from '@src/CONST';
 import ROUTES from '@src/ROUTES';
-import type {Policy, PolicyTagLists, Report, ReportAction} from '@src/types/onyx';
+import type {Policy, PolicyTagLists, Report, ReportAction, ReportAttributesDerivedValue} from '@src/types/onyx';
 import type {PersonalRulesModifiedFields, PolicyRulesModifiedFields} from '@src/types/onyx/OriginalMessage';
 import ObjectUtils from '@src/types/utils/ObjectUtils';
 import {getDecodedCategoryName, isCategoryMissing} from './CategoryUtils';
@@ -15,15 +15,14 @@ import {formatList} from './Localize';
 import Log from './Log';
 import Parser from './Parser';
 import {getPersonalDetailByEmail} from './PersonalDetailsUtils';
-import {getCleanedTagName, getCommaSeparatedTagNameWithSanitizedColons, getSortedTagKeys, isPolicyAdmin} from './PolicyUtils';
+import {getCleanedTagName, getCommaSeparatedTagNameWithSanitizedColons, getQBOVendorByID, getSortedTagKeys, isPolicyAdmin} from './PolicyUtils';
 import {getOriginalMessage, isModifiedExpenseAction} from './ReportActionsUtils';
 // This cycle import is safe because ReportNameUtils was extracted from ReportUtils to separate report name computation logic.
 // The functions imported here are pure utility functions that don't create initialization-time dependencies.
 // ReportNameUtils imports helper functions from ReportUtils, and ReportUtils imports name generation functions from ReportNameUtils.
 // eslint-disable-next-line import/no-cycle
-import {buildReportNameFromParticipantNames, getPolicyExpenseChatName} from './ReportNameUtils';
-// eslint-disable-next-line import/no-cycle
-import {getPolicyName, getReportName, getRootParentReport, isPolicyExpenseChat, isSelfDM} from './ReportUtils';
+import {buildReportNameFromParticipantNames, getPolicyExpenseChatName, getReportName} from './ReportNameUtils';
+import {getPolicyName, getRootParentReport, isPolicyExpenseChat, isSelfDM} from './ReportUtils';
 import {getFormattedAttendees, getTagArrayFromName} from './TransactionUtils';
 import {isInvalidMerchantValue} from './ValidationUtils';
 
@@ -63,7 +62,7 @@ function buildMessageFragmentForValue(
         const fragment = translate('iou.removedTheRequest', displayValueName, oldValueToDisplay);
         removalFragments.push(fragment);
     } else {
-        const fragment = translate('iou.updatedTheRequest', {valueName: displayValueName, newValueToDisplay, oldValueToDisplay});
+        const fragment = translate('iou.updatedTheRequest', displayValueName, newValueToDisplay, oldValueToDisplay);
         changeFragments.push(fragment);
     }
 }
@@ -121,16 +120,10 @@ function getForDistanceRequest(translate: LocalizedTranslate, newMerchant: strin
     if (!oldMerchant.length) {
         return translate('iou.setTheDistanceMerchant', translatedChangedField, newMerchant, newAmount);
     }
-    return translate('iou.updatedTheDistanceMerchant', {
-        translatedChangedField,
-        newMerchant,
-        oldMerchant,
-        newAmountToDisplay: newAmount,
-        oldAmountToDisplay: oldAmount,
-    });
+    return translate('iou.updatedTheDistanceMerchant', translatedChangedField, newMerchant, oldMerchant, newAmount, oldAmount);
 }
 
-function getForExpenseMovedFromSelfDM(translate: LocalizedTranslate, destinationReport: OnyxEntry<Report>, currentUserLogin: string) {
+function getForExpenseMovedFromSelfDM(translate: LocalizedTranslate, destinationReport: OnyxEntry<Report>, currentUserLogin: string, policy: OnyxEntry<Policy>) {
     const rootParentReport = getRootParentReport({report: destinationReport});
     // In OldDot, expenses could be moved to a self-DM. Return the corresponding message for this case.
     if (isSelfDM(rootParentReport)) {
@@ -143,7 +136,7 @@ function getForExpenseMovedFromSelfDM(translate: LocalizedTranslate, destination
     const reportName = isPolicyExpenseChat(rootParentReport)
         ? getPolicyExpenseChatName({report: rootParentReport})
         : buildReportNameFromParticipantNames({report: rootParentReport, currentUserAccountID});
-    const policyName = getPolicyName({report: rootParentReport, returnEmptyIfNotFound: true});
+    const policyName = getPolicyName({report: rootParentReport, returnEmptyIfNotFound: true, policy});
     // If we can't determine either the report name or policy name, return the default message
     if (isEmpty(policyName) && !reportName) {
         return translate('iou.changedTheExpense');
@@ -165,15 +158,16 @@ function getMovedFromOrToReportMessage(
     movedFromReport: OnyxEntry<Report> | undefined,
     movedToReport: OnyxEntry<Report> | undefined,
     currentUserLogin: string,
+    policy: OnyxEntry<Policy>,
+    reportAttributes?: ReportAttributesDerivedValue['reports'],
 ): string | undefined {
     if (movedToReport) {
-        return getForExpenseMovedFromSelfDM(translate, movedToReport, currentUserLogin);
+        return getForExpenseMovedFromSelfDM(translate, movedToReport, currentUserLogin, policy);
     }
 
     if (movedFromReport) {
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        const originReportName = getReportName({report: movedFromReport});
-        return translate('iou.movedFromReport', originReportName ?? '');
+        const originReportName = getReportName(movedFromReport, reportAttributes);
+        return originReportName ? translate('iou.movedFromReport', originReportName) : translate('iou.movedFromReportNoName');
     }
 }
 
@@ -210,7 +204,7 @@ function getRulesModifiedMessage(
 
         if (key === 'tax') {
             const taxEntry = value as PolicyRulesModifiedFields['tax'];
-            const taxRateName = taxEntry?.field_id_TAX.name ?? '';
+            const taxRateName = taxEntry?.field_id_TAX?.name ?? '';
             return translate('iou.rulesModifiedFields.tax', taxRateName, isFirst);
         }
 
@@ -251,10 +245,11 @@ function getForReportAction({
     movedToReport,
     policyTags,
     currentUserLogin,
+    reportAttributes,
 }: {
     translate: LocalizedTranslate;
     reportAction: OnyxEntry<ReportAction>;
-    policy?: OnyxEntry<Policy>;
+    policy: OnyxEntry<Policy>;
     movedFromReport?: OnyxEntry<Report>;
     movedToReport?: OnyxEntry<Report>;
     // Optional because the deprecated getReportName in ReportUtils.ts calls this without policyTags.
@@ -262,12 +257,13 @@ function getForReportAction({
     // See https://github.com/Expensify/App/pull/75562
     policyTags?: OnyxEntry<PolicyTagLists>;
     currentUserLogin: string;
+    reportAttributes?: ReportAttributesDerivedValue['reports'];
 }): string {
     if (!isModifiedExpenseAction(reportAction)) {
         return '';
     }
 
-    const movedFromOrToReportMessage = getMovedFromOrToReportMessage(translate, movedFromReport, movedToReport, currentUserLogin);
+    const movedFromOrToReportMessage = getMovedFromOrToReportMessage(translate, movedFromReport, movedToReport, currentUserLogin, policy, reportAttributes);
     if (movedFromOrToReportMessage) {
         return movedFromOrToReportMessage;
     }
@@ -280,11 +276,7 @@ function getForReportAction({
 
     const isReportActionOriginalMessageAnObject = reportActionOriginalMessage && typeof reportActionOriginalMessage === 'object';
     const hasModifiedAmount =
-        isReportActionOriginalMessageAnObject &&
-        'oldAmount' in reportActionOriginalMessage &&
-        'oldCurrency' in reportActionOriginalMessage &&
-        'amount' in reportActionOriginalMessage &&
-        'currency' in reportActionOriginalMessage;
+        isReportActionOriginalMessageAnObject && 'oldCurrency' in reportActionOriginalMessage && 'amount' in reportActionOriginalMessage && 'currency' in reportActionOriginalMessage;
 
     const hasModifiedMerchant = isReportActionOriginalMessageAnObject && 'oldMerchant' in reportActionOriginalMessage && 'merchant' in reportActionOriginalMessage;
 
@@ -301,7 +293,16 @@ function getForReportAction({
         if (hasModifiedMerchant && (reportActionOriginalMessage?.merchant ?? '').includes('@')) {
             return getForDistanceRequest(translate, reportActionOriginalMessage?.merchant ?? '', reportActionOriginalMessage?.oldMerchant ?? '', amount, oldAmount);
         }
-        buildMessageFragmentForValue(translate, amount, oldAmount, translate('iou.amount'), false, setFragments, removalFragments, changeFragments);
+        buildMessageFragmentForValue(
+            translate,
+            amount,
+            reportActionOriginalMessage?.oldAmount !== undefined ? oldAmount : '',
+            translate('iou.amount'),
+            false,
+            setFragments,
+            removalFragments,
+            changeFragments,
+        );
     }
 
     const hasModifiedComment = isReportActionOriginalMessageAnObject && 'oldComment' in reportActionOriginalMessage && 'newComment' in reportActionOriginalMessage;
@@ -445,6 +446,36 @@ function getForReportAction({
             reportActionOriginalMessage?.oldReimbursable === 'reimbursable' ? translate('iou.reimbursable').toLowerCase() : translate('iou.nonReimbursable').toLowerCase();
         const newReimbursable = reportActionOriginalMessage?.reimbursable === 'reimbursable' ? translate('iou.reimbursable').toLowerCase() : translate('iou.nonReimbursable').toLowerCase();
         buildMessageFragmentForValue(translate, newReimbursable, oldReimbursable, translate('iou.expense'), true, setFragments, removalFragments, changeFragments);
+    }
+
+    // Onyx applies updates with `shouldRemoveNestedNulls: true`, so when we build an optimistic
+    // MODIFIED_EXPENSE for a vendor "set" (no prior, `oldVendor: null`) or "remove" (no new,
+    // `vendor: null`), the null-valued key is stripped on merge and only one of the two keys
+    // survives in storage. Treat either key's presence as a vendor modification — requiring both
+    // would let "add" and "remove" cases fall through to the generic "changed the expense"
+    // fallback.
+    const hasModifiedVendor = isReportActionOriginalMessageAnObject && ('oldVendor' in reportActionOriginalMessage || 'vendor' in reportActionOriginalMessage);
+    if (hasModifiedVendor) {
+        // Vendor is stored on the action as `{externalID, isManuallySet}` (or absent/null). Resolve
+        // the display name from the policy's QBO vendor list; if the vendor has since been removed
+        // from QBO the name is unrecoverable, so fall back to the externalID so the fragment still
+        // identifies which vendor was set rather than rendering `set vendor ""`.
+        const resolveVendorName = (entry: typeof reportActionOriginalMessage.vendor): string => {
+            if (!entry?.externalID) {
+                return '';
+            }
+            return getQBOVendorByID(policy, entry.externalID)?.name ?? entry.externalID;
+        };
+        buildMessageFragmentForValue(
+            translate,
+            resolveVendorName(reportActionOriginalMessage?.vendor),
+            resolveVendorName(reportActionOriginalMessage?.oldVendor),
+            translate('common.vendor'),
+            true,
+            setFragments,
+            removalFragments,
+            changeFragments,
+        );
     }
 
     const hasModifiedAttendees = isReportActionOriginalMessageAnObject && 'oldAttendees' in reportActionOriginalMessage && 'newAttendees' in reportActionOriginalMessage;

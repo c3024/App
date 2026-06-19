@@ -14,8 +14,8 @@ import useScrollContext from '@hooks/useScrollContext';
 import useTheme from '@hooks/useTheme';
 import useThemeStyles from '@hooks/useThemeStyles';
 import {isMobile} from '@libs/Browser';
-import getOperatingSystem from '@libs/getOperatingSystem';
 import CONST from '@src/CONST';
+import getAccessibilityLabelConfig from './getAccessibilityLabelConfig';
 import type {BasePickerProps} from './types';
 
 type IconToRender = () => ReactElement;
@@ -46,7 +46,7 @@ function BasePicker<TPickerValue>({
     const {translate} = useLocalize();
     const theme = useTheme();
     const styles = useThemeStyles();
-
+    const {shouldAnnounceSelectedLabel, shouldUseCustomAccessibilityLabel} = getAccessibilityLabelConfig();
     const [isHighlighted, setIsHighlighted] = useState(false);
 
     // reference to the root View
@@ -56,7 +56,7 @@ function BasePicker<TPickerValue>({
     const picker = useRef<RNPickerSelect>(null);
 
     useEffect(() => {
-        if (!!value || !items || items.length !== 1 || !onInputChange) {
+        if (!!value || items?.length !== 1 || !onInputChange) {
             return;
         }
 
@@ -98,12 +98,10 @@ function BasePicker<TPickerValue>({
             return () => icon(size);
         }
 
-        // eslint-disable-next-line react/display-name
         return () => (
             <Icon
                 fill={theme.icon}
                 src={icons.DownArrow}
-                // eslint-disable-next-line react/jsx-props-no-spreading
                 {...(size === 'small' ? {width: styles.pickerSmall().icon.width, height: styles.pickerSmall().icon.height} : {})}
             />
         );
@@ -146,16 +144,7 @@ function BasePicker<TPickerValue>({
         },
     }));
 
-    /**
-     * We pass light text on Android, since Android Native alerts have a dark background in all themes for now.
-     */
-    const itemColor = useMemo(() => {
-        if (getOperatingSystem() === CONST.OS.ANDROID) {
-            return theme.textLight;
-        }
-
-        return theme.text;
-    }, [theme]);
+    const itemColor = theme.text;
 
     // Windows will reuse the text color of the select for each one of the options
     // so we might need to color accordingly so it doesn't blend with the background.
@@ -165,6 +154,19 @@ function BasePicker<TPickerValue>({
 
     // Disable Tab focus on mobile to prevent soft keyboard navigation jumping to picker (#25759)
     const pickerTabIndex = isMobile() ? -1 : 0;
+
+    const selectedItem = items.find((item) => item.value === value);
+    const selectedLabel = selectedItem?.label ?? '';
+    const defaultAccessibilityLabel = accessibilityLabel ?? label ?? selectedLabel;
+    const enhancedAccessibilityLabel = useMemo(() => {
+        if (!defaultAccessibilityLabel) {
+            return selectedLabel || '';
+        }
+        if (selectedLabel) {
+            return `${defaultAccessibilityLabel}${shouldAnnounceSelectedLabel ? `, ${selectedLabel}` : ''}, ${translate(isHighlighted ? 'common.expanded' : 'common.collapsed')}`;
+        }
+        return defaultAccessibilityLabel;
+    }, [defaultAccessibilityLabel, selectedLabel, shouldAnnounceSelectedLabel, translate, isHighlighted]);
 
     if (isDisabled && shouldShowOnlyTextWhenDisabled) {
         return (
@@ -182,6 +184,8 @@ function BasePicker<TPickerValue>({
             </View>
         );
     }
+
+    const actualAccessibilityLabel = shouldUseCustomAccessibilityLabel ? enhancedAccessibilityLabel : defaultAccessibilityLabel;
 
     return (
         <>
@@ -211,6 +215,8 @@ function BasePicker<TPickerValue>({
                     onClose={disableHighlight}
                     textInputProps={{
                         allowFontScaling: false,
+                        accessibilityRole: CONST.ROLE.COMBOBOX,
+                        accessibilityLabel: actualAccessibilityLabel,
                         importantForAccessibility: 'no-hide-descendants',
                     }}
                     touchableDoneProps={{
@@ -220,9 +226,10 @@ function BasePicker<TPickerValue>({
                     touchableWrapperProps={{
                         accessible: true,
                         accessibilityRole: CONST.ROLE.COMBOBOX,
-                        accessibilityLabel,
-                        accessibilityState: {disabled: isDisabled, expanded: isHighlighted},
+                        accessibilityLabel: actualAccessibilityLabel,
                     }}
+                    doneText={translate('common.done')}
+                    dismissText={translate('common.dismiss')}
                     pickerProps={{
                         ref: picker,
                         tabIndex: pickerTabIndex,
@@ -231,7 +238,8 @@ function BasePicker<TPickerValue>({
                             disableHighlight();
                             onBlur();
                         },
-                        accessibilityLabel,
+                        accessibilityLabel: actualAccessibilityLabel,
+                        accessibilityRole: CONST.ROLE.COMBOBOX,
                         ...additionalPickerEvents(enableHighlight, (inputValue, index) => {
                             onValueChange(inputValue, index);
                             disableHighlight();

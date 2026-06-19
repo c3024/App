@@ -1,11 +1,10 @@
-import {findFocusedRoute, getStateFromPath as RNGetStateFromPath} from '@react-navigation/native';
+import {getStateFromPath as RNGetStateFromPath} from '@react-navigation/native';
 import Log from '@libs/Log';
 import getStateForDynamicRoute from '@libs/Navigation/helpers/dynamicRoutesUtils/getStateForDynamicRoute';
 import getStateFromPath from '@libs/Navigation/helpers/getStateFromPath';
 import type {Route} from '@src/ROUTES';
 
 jest.mock('@react-navigation/native', () => ({
-    findFocusedRoute: jest.fn(),
     getStateFromPath: jest.fn(),
 }));
 
@@ -17,6 +16,10 @@ jest.mock('@libs/Navigation/linkingConfig', () => ({
     linkingConfig: {
         config: {},
     },
+}));
+
+jest.mock('@libs/Navigation/linkingConfig/config', () => ({
+    screensWithOnyxTabNavigator: new Set(),
 }));
 
 jest.mock('@src/ROUTES', () => ({
@@ -41,25 +44,36 @@ jest.mock('@src/ROUTES', () => ({
             path: 'suffix-b-from-multi',
             entryScreens: ['DynamicMultiSegScreen'],
         },
+        WILDCARD_SUFFIX: {
+            path: 'wildcard-suffix',
+            entryScreens: ['*'],
+        },
+        AMBIGUOUS_STATIC: {
+            path: 'gl-code',
+            entryScreens: ['CategorySettingsScreen'],
+        },
+        TAG_SETTINGS_PARAM: {
+            path: 'tag-settings/:orderWeight/:tagName',
+            entryScreens: ['TagsRootScreen'],
+        },
     },
 }));
 
 jest.mock('@libs/Navigation/helpers/getMatchingNewRoute', () => jest.fn());
-jest.mock('@libs/Navigation/helpers/getRedirectedPath', () => jest.fn((path: string) => path));
 jest.mock('@libs/Navigation/helpers/dynamicRoutesUtils/getStateForDynamicRoute', () => jest.fn());
 
 describe('getStateFromPath', () => {
-    const mockFindFocusedRoute = findFocusedRoute as jest.Mock;
     const mockRNGetStateFromPath = RNGetStateFromPath as jest.Mock;
     const mockGetStateForDynamicRoute = getStateForDynamicRoute as jest.Mock;
     const mockLogWarn = jest.spyOn(Log, 'warn');
 
-    const baseRouteState = {routes: [{name: 'BaseScreen'}]};
-    const dynamicSuffixAState = {routes: [{name: 'DynamicSuffixAScreen'}]};
-    const dynamicSuffixBState = {routes: [{name: 'DynamicSuffixBScreen'}]};
-    const dynamicMultiSegState = {routes: [{name: 'DynamicMultiSegScreen'}]};
-    const dynamicMultiSegLayerState = {routes: [{name: 'DynamicMultiSegLayerScreen'}]};
     const focusedRouteParams = {baseParam: '123'};
+    const baseRouteState = {routes: [{name: 'BaseScreen', params: focusedRouteParams}]};
+    const dynamicSuffixAState = {routes: [{name: 'DynamicSuffixAScreen', params: focusedRouteParams}]};
+    const dynamicSuffixBState = {routes: [{name: 'DynamicSuffixBScreen'}]};
+    const dynamicMultiSegState = {routes: [{name: 'DynamicMultiSegScreen', params: focusedRouteParams}]};
+    const dynamicMultiSegLayerState = {routes: [{name: 'DynamicMultiSegLayerScreen'}]};
+    const dynamicWildcardState = {routes: [{name: 'DynamicWildcardScreen'}]};
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -77,19 +91,10 @@ describe('getStateFromPath', () => {
             if (dynamicRouteKey === 'MULTI_SEG_LAYER') {
                 return dynamicMultiSegLayerState;
             }
+            if (dynamicRouteKey === 'WILDCARD_SUFFIX') {
+                return dynamicWildcardState;
+            }
             return {routes: [{name: 'UnknownDynamic'}]};
-        });
-        mockFindFocusedRoute.mockImplementation((state: unknown) => {
-            if (state === baseRouteState) {
-                return {name: 'BaseScreen', params: focusedRouteParams};
-            }
-            if (state === dynamicSuffixAState) {
-                return {name: 'DynamicSuffixAScreen', params: focusedRouteParams};
-            }
-            if (state === dynamicMultiSegState) {
-                return {name: 'DynamicMultiSegScreen', params: focusedRouteParams};
-            }
-            return undefined;
         });
     });
 
@@ -116,12 +121,11 @@ describe('getStateFromPath', () => {
         const fullPath = '/unknown/suffix-b-unauth';
         const standardState = {routes: [{name: 'FallbackRoute'}]};
         mockRNGetStateFromPath.mockReturnValue(standardState);
-        mockFindFocusedRoute.mockReturnValue({name: 'UnknownScreen'});
 
         const result = getStateFromPath(fullPath as unknown as Route);
 
         expect(result).toBe(standardState);
-        expect(mockLogWarn).toHaveBeenCalledWith(expect.stringContaining('is not allowed to access dynamic route'));
+        expect(mockLogWarn).toHaveBeenCalledWith(expect.stringContaining('None of the'));
     });
 
     describe('layered dynamic suffixes', () => {
@@ -149,7 +153,7 @@ describe('getStateFromPath', () => {
 
             expect(result).toBe(standardState);
             expect(mockGetStateForDynamicRoute).toHaveBeenCalledWith('/base/suffix-a', 'SUFFIX_A', focusedRouteParams);
-            expect(mockLogWarn).toHaveBeenCalledWith(expect.stringContaining('is not allowed to access dynamic route'));
+            expect(mockLogWarn).toHaveBeenCalledWith(expect.stringContaining('None of the'));
         });
 
         it('should pass the full layered path including query params to the outer dynamic route builder', () => {
@@ -168,6 +172,91 @@ describe('getStateFromPath', () => {
             expect(result).toBe(dynamicMultiSegLayerState);
             expect(mockGetStateForDynamicRoute).toHaveBeenCalledWith('/base/deep/suffix-a', 'MULTI_SEG', focusedRouteParams);
             expect(mockGetStateForDynamicRoute).toHaveBeenCalledWith(fullPath, 'MULTI_SEG_LAYER', focusedRouteParams);
+        });
+    });
+
+    describe('wildcard entryScreens', () => {
+        it('should authorize any focused screen when entryScreens contains wildcard', () => {
+            const fullPath = '/base/wildcard-suffix';
+
+            const result = getStateFromPath(fullPath as unknown as Route);
+
+            expect(result).toBe(dynamicWildcardState);
+            expect(mockGetStateForDynamicRoute).toHaveBeenCalledWith(fullPath, 'WILDCARD_SUFFIX', focusedRouteParams);
+            expect(mockLogWarn).not.toHaveBeenCalled();
+        });
+
+        it('should authorize wildcard in a layered scenario where the inner screen is not explicitly listed', () => {
+            const fullPath = '/base/suffix-a/wildcard-suffix';
+
+            const result = getStateFromPath(fullPath as unknown as Route);
+
+            expect(result).toBe(dynamicWildcardState);
+            expect(mockGetStateForDynamicRoute).toHaveBeenCalledWith('/base/suffix-a', 'SUFFIX_A', focusedRouteParams);
+            expect(mockGetStateForDynamicRoute).toHaveBeenCalledWith(fullPath, 'WILDCARD_SUFFIX', focusedRouteParams);
+            expect(mockLogWarn).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('ambiguous suffix disambiguation', () => {
+        const tagsRootParams = {policyID: '456'};
+        const tagsRootState = {routes: [{name: 'TagsRootScreen', params: tagsRootParams}]};
+        const categorySettingsParams = {categoryName: 'food'};
+        const categorySettingsState = {routes: [{name: 'CategorySettingsScreen', params: categorySettingsParams}]};
+        const tagSettingsParamState = {routes: [{name: 'TagSettingsParamScreen'}]};
+        const ambiguousStaticState = {routes: [{name: 'AmbiguousStaticScreen'}]};
+
+        beforeEach(() => {
+            const baseImpl = mockGetStateForDynamicRoute.getMockImplementation();
+            mockGetStateForDynamicRoute.mockImplementation((path: string, dynamicRouteKey: string) => {
+                if (dynamicRouteKey === 'AMBIGUOUS_STATIC') {
+                    return ambiguousStaticState;
+                }
+                if (dynamicRouteKey === 'TAG_SETTINGS_PARAM') {
+                    return tagSettingsParamState;
+                }
+                return baseImpl?.(path, dynamicRouteKey) as unknown;
+            });
+        });
+
+        it('should warn and fallback to RN when ALL dynamic candidates fail entryScreens validation', () => {
+            const fullPath = '/tags-root/tag-settings/0/gl-code';
+            const unknownState = {routes: [{name: 'UnknownScreen'}]};
+            const fallbackState = {routes: [{name: 'FallbackRoute'}]};
+            mockRNGetStateFromPath.mockImplementation((path: string) => {
+                if (path === fullPath) {
+                    return fallbackState;
+                }
+                return unknownState;
+            });
+
+            const result = getStateFromPath(fullPath as unknown as Route);
+
+            expect(result).toBe(fallbackState);
+            expect(mockLogWarn).toHaveBeenCalledWith(expect.stringContaining('None of the'));
+            expect(mockGetStateForDynamicRoute).not.toHaveBeenCalled();
+        });
+
+        it('should resolve to the parametric candidate when the greedy static match fails but a longer parametric suffix validates (post-fix)', () => {
+            const fullPath = '/tags-root/tag-settings/0/gl-code';
+            mockRNGetStateFromPath.mockReturnValue(tagsRootState);
+
+            const result = getStateFromPath(fullPath as unknown as Route);
+
+            expect(result).toBe(tagSettingsParamState);
+            expect(mockGetStateForDynamicRoute).toHaveBeenCalledWith(fullPath, 'TAG_SETTINGS_PARAM', expect.objectContaining({orderWeight: '0', tagName: 'gl-code'}));
+            expect(mockLogWarn).not.toHaveBeenCalled();
+        });
+
+        it('should use the first matching candidate immediately when entryScreens validation passes', () => {
+            const fullPath = '/category-settings/gl-code';
+            mockRNGetStateFromPath.mockReturnValue(categorySettingsState);
+
+            const result = getStateFromPath(fullPath as unknown as Route);
+
+            expect(result).toBe(ambiguousStaticState);
+            expect(mockGetStateForDynamicRoute).toHaveBeenCalledWith(fullPath, 'AMBIGUOUS_STATIC', expect.objectContaining(categorySettingsParams));
+            expect(mockLogWarn).not.toHaveBeenCalled();
         });
     });
 });

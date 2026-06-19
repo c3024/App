@@ -11,7 +11,7 @@ const request: Request<'reportMetadata_1' | 'reportMetadata_2'> = {
     command: 'OpenReport',
     successData: [{key: 'reportMetadata_1', onyxMethod: 'merge', value: {}}],
     failureData: [{key: 'reportMetadata_2', onyxMethod: 'merge', value: {}}],
-    requestID: 1,
+    requestIndex: 1,
 };
 
 beforeAll(() =>
@@ -55,7 +55,7 @@ describe('PersistedRequests', () => {
             command: 'AddComment',
             successData: [{key: 'reportMetadata_3', onyxMethod: 'merge', value: {}}],
             failureData: [{key: 'reportMetadata_4', onyxMethod: 'merge', value: {}}],
-            requestID: 2,
+            requestIndex: 2,
         };
         PersistedRequests.save(request2);
         PersistedRequests.processNextRequest();
@@ -70,7 +70,7 @@ describe('PersistedRequests', () => {
             command: 'OpenReport',
             successData: [{key: 'reportMetadata_1', onyxMethod: 'set', value: {}}],
             failureData: [{key: 'reportMetadata_2', onyxMethod: 'set', value: {}}],
-            requestID: 3,
+            requestIndex: 3,
         };
         PersistedRequests.update(0, newRequest);
         expect(PersistedRequests.getAll().at(0)).toEqual(newRequest);
@@ -81,10 +81,39 @@ describe('PersistedRequests', () => {
             command: 'OpenReport',
             successData: [{key: 'reportMetadata_1', onyxMethod: 'set', value: {}}],
             failureData: [{key: 'reportMetadata_2', onyxMethod: 'set', value: {}}],
-            requestID: 4,
+            requestIndex: 4,
         };
         PersistedRequests.updateOngoingRequest(newRequest);
         expect(PersistedRequests.getOngoingRequest()).toEqual(newRequest);
+    });
+
+    it('updateOngoingRequest should clear persisted ongoing request when data contains a File/Blob', async () => {
+        PersistedRequests.processNextRequest();
+        await waitForBatchedUpdates();
+
+        const originalFile = global.File;
+        function MockFile() {}
+        global.File = MockFile as unknown as typeof File;
+
+        try {
+            const mockFilePrototype = MockFile.prototype as Record<string, never>;
+            const mockFile = Object.create(mockFilePrototype) as File;
+            const newRequest: Request<'reportMetadata_1' | 'reportMetadata_2'> = {
+                command: 'OpenReport',
+                successData: [{key: 'reportMetadata_1', onyxMethod: 'set', value: {}}],
+                failureData: [{key: 'reportMetadata_2', onyxMethod: 'set', value: {}}],
+                requestIndex: 5,
+                data: {file: mockFile},
+            };
+
+            PersistedRequests.updateOngoingRequest(newRequest);
+            await waitForBatchedUpdates();
+
+            expect(PersistedRequests.getOngoingRequest()).toEqual(newRequest);
+            expect((await OnyxUtils.get(ONYXKEYS.PERSISTED_ONGOING_REQUESTS)) == null).toBe(true);
+        } finally {
+            global.File = originalFile;
+        }
     });
 
     it('when removing a request should update the persistedRequests queue and clear the ongoing request', () => {
@@ -140,7 +169,7 @@ describe('PersistedRequests persistence guarantees', () => {
             command: 'AddComment',
             successData: [{key: 'reportMetadata_3', onyxMethod: 'merge', value: {}}],
             failureData: [{key: 'reportMetadata_4', onyxMethod: 'merge', value: {}}],
-            requestID: 2,
+            requestIndex: 2,
         };
 
         PersistedRequests.save(requestB);
@@ -166,6 +195,39 @@ describe('PersistedRequests persistence guarantees', () => {
                 expect(diskArray).toHaveLength(1);
             });
         });
+    });
+
+    it('processNextRequest should keep the in-memory ongoing request when data contains a File/Blob', async () => {
+        PersistedRequests.clear();
+        await waitForBatchedUpdates();
+
+        const originalFile = global.File;
+        function MockFile() {}
+        global.File = MockFile as unknown as typeof File;
+
+        try {
+            const mockFilePrototype = MockFile.prototype as Record<string, never>;
+            const mockFile = Object.create(mockFilePrototype) as File;
+            const requestWithFile: Request<'reportMetadata_1' | 'reportMetadata_2'> = {
+                command: 'OpenReport',
+                successData: [{key: 'reportMetadata_1', onyxMethod: 'merge', value: {}}],
+                failureData: [{key: 'reportMetadata_2', onyxMethod: 'merge', value: {}}],
+                requestIndex: 30,
+                data: {file: mockFile},
+            };
+
+            PersistedRequests.save(requestWithFile);
+            await waitForBatchedUpdates();
+
+            const nextRequest = PersistedRequests.processNextRequest();
+            await waitForBatchedUpdates();
+
+            expect(nextRequest).toEqual(requestWithFile);
+            expect(PersistedRequests.getOngoingRequest()).toEqual(requestWithFile);
+            expect((await OnyxUtils.get(ONYXKEYS.PERSISTED_ONGOING_REQUESTS)) == null).toBe(true);
+        } finally {
+            global.File = originalFile;
+        }
     });
 
     // BUG: save() at PersistedRequests.ts:124-134 does a read-modify-write
@@ -201,14 +263,14 @@ describe('PersistedRequests persistence guarantees', () => {
                 command: 'CommandA',
                 successData: [{key: 'reportMetadata_1', onyxMethod: 'merge', value: {}}],
                 failureData: [{key: 'reportMetadata_2', onyxMethod: 'merge', value: {}}],
-                requestID: 10,
+                requestIndex: 10,
             };
 
             const requestB: Request<'reportMetadata_3' | 'reportMetadata_4'> = {
                 command: 'CommandB',
                 successData: [{key: 'reportMetadata_3', onyxMethod: 'merge', value: {}}],
                 failureData: [{key: 'reportMetadata_4', onyxMethod: 'merge', value: {}}],
-                requestID: 11,
+                requestIndex: 11,
             };
 
             // save(requestA): in-memory = [A], Onyx.set([A]) captured but not executed
@@ -241,5 +303,57 @@ describe('PersistedRequests persistence guarantees', () => {
         } finally {
             setMock.mockRestore();
         }
+    });
+
+    it('Follower tab should reconcile processed requests from leader via cross-tab callback', async () => {
+        PersistedRequests.clear();
+        await waitForBatchedUpdates();
+        expect(PersistedRequests.getAll()).toHaveLength(0);
+
+        const requestA: Request<'reportMetadata_1' | 'reportMetadata_2'> = {
+            command: 'CommandA',
+            successData: [{key: 'reportMetadata_1', onyxMethod: 'merge', value: {}}],
+            failureData: [{key: 'reportMetadata_2', onyxMethod: 'merge', value: {}}],
+            requestIndex: 20,
+        };
+        const requestB: Request<'reportMetadata_3' | 'reportMetadata_4'> = {
+            command: 'CommandB',
+            successData: [{key: 'reportMetadata_3', onyxMethod: 'merge', value: {}}],
+            failureData: [{key: 'reportMetadata_4', onyxMethod: 'merge', value: {}}],
+            requestIndex: 21,
+        };
+
+        PersistedRequests.save(requestA);
+        PersistedRequests.save(requestB);
+        await waitForBatchedUpdates();
+        expect(PersistedRequests.getAll()).toHaveLength(2);
+
+        // Reset the pending write counter before simulating a cross-tab event.
+        // In production, cross-tab updates arrive via storage events which are
+        // independent of Onyx.set promise timing, so the counter is always 0.
+        // In tests, promise resolution timing is unpredictable relative to
+        // Onyx callbacks, so we reset explicitly.
+        PersistedRequests.resetPendingWritesForTest();
+
+        // Simulate a cross-tab callback: leader processed requestA and removed it.
+        await Onyx.set(ONYXKEYS.PERSISTED_REQUESTS, [requestB]);
+        await waitForBatchedUpdates();
+
+        // The follower should have reconciled: requestA removed from memory
+        expect(PersistedRequests.getAll()).toHaveLength(1);
+        expect(PersistedRequests.getAll().at(0)).toEqual(requestB);
+
+        // Save a new request — it should NOT re-add requestA to disk
+        const requestC: Request<'reportMetadata_5' | 'reportMetadata_6'> = {
+            command: 'CommandC',
+            successData: [{key: 'reportMetadata_5', onyxMethod: 'merge', value: {}}],
+            failureData: [{key: 'reportMetadata_6', onyxMethod: 'merge', value: {}}],
+            requestIndex: 22,
+        };
+        PersistedRequests.save(requestC);
+        await waitForBatchedUpdates();
+
+        expect(PersistedRequests.getAll()).toHaveLength(2);
+        expect(PersistedRequests.getAll().map((r) => r.command)).toEqual(['CommandB', 'CommandC']);
     });
 });
